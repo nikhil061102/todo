@@ -1,6 +1,7 @@
 import asyncHandler from "express-async-handler";
 import Todo from "../models/todoModel.mjs";
 import User from "../models/userModel.mjs";
+import { sendEmailDeadlineReminder, sendEmailDeadlineExceed } from "../config/mailto";
 
 const createTodo = asyncHandler(async (req, res) => {
   const { title, desc, isCompleted, isStarred, isDateTimePickerEnabled, deadline } = req.body;
@@ -18,7 +19,9 @@ const createTodo = asyncHandler(async (req, res) => {
     await newTodo.save();
     res.status(201).json({ message: "Todo created successfully" });
     const user = await User.find({user: req.user});
-    sendEmailDeadlineReminder(user.email, title, desc, deadline);
+    if (deadline > Date.now() + (15 * 60 * 1000)) {
+      sendEmailDeadlineReminder(user.email, title, desc, deadline);
+    }  
     sendEmailDeadlineExceed(user.email, title, desc, deadline);
   } catch (error) {
     res.status(400).json({ err: "Server Error" });
@@ -63,14 +66,16 @@ const updateTodo = asyncHandler(async (req, res) => {
       res.status(204).send();
       return;
     }
-    if(todo.deadline != deadline) {
-      const user = await User.find({user: req.user});
-      sendEmailDeadlineReminder(user.email, title, desc, deadline);
-      sendEmailDeadlineExceed(user.email, title, desc, deadline);
-    }
-
     todo.createdAt = Date.now();
     await todo.save();
+
+    if(todo.deadline != deadline) {
+      const user = await User.find({user: req.user});
+      if (deadline > Date.now() + (15 * 60 * 1000)) {
+        sendEmailDeadlineReminder(user.email, title, desc, deadline);
+      }    
+      sendEmailDeadlineExceed(user.email, title, desc, deadline);
+    }
     res.status(200).json({ message: "Todo updated successfully" });
   } catch (error) {
     res.status(400).json({ err: "Server Error" });
