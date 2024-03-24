@@ -30,7 +30,7 @@ Timely`
     }
 
     let currentDate = new Date(taskDeadline);
-    currentDate.setMinutes(currentDate.getMinutes() - 30);
+    currentDate.setMinutes(currentDate.getMinutes() - 15);
     let datetimeString = currentDate.toISOString();
 
     schedule.scheduleJob(datetimeString, () => {
